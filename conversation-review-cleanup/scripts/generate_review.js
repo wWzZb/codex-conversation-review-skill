@@ -95,7 +95,7 @@ function firstValue(obj, keys) {
 
 function normalizeRecord(record, source) {
   const id = String(firstValue(record, ["id", "thread_id", "threadId", "session_id", "sessionId", "conversation_id"]));
-  const title = String(firstValue(record, ["title", "name", "summary", "first_user_message"]));
+  const title = String(firstValue(record, ["title", "thread_name", "threadName", "name", "summary", "first_user_message"]));
   const updated = firstValue(record, ["updated_at", "updatedAt", "last_updated_at", "lastModified", "mtime", "created_at", "createdAt"]);
   const created = firstValue(record, ["created_at", "createdAt", "started_at", "startedAt"]);
   const sessionPath = String(firstValue(record, ["path", "file", "session_path", "sessionPath", "jsonl_path"]));
@@ -236,86 +236,91 @@ function tableRows(sessions, limit = 6) {
   }).join("\n");
 }
 
+function taskRows(sessions, limit = 6) {
+  if (!sessions.length) return "| 无 | - | - |";
+  return sessions.slice(0, limit).map((session) => {
+    const name = (session.title || session.id || "(untitled)").replace(/\|/g, "/").slice(0, 80);
+    const result = session.parseError ? `无法解析：${session.parseError}` : "待读取线程摘要后补全";
+    return `| ${name} | ${result} | 待判断 |`;
+  }).join("\n");
+}
+
 function buildReviewMarkdown(sessions, diagnostics, args) {
   const scope = args.allUnsummarized ? "全部未总结会话" : `最近 ${args.days} 天会话`;
   const failed = sessions.filter((session) => session.parseError);
 
-  return `# Codex 对话工作模式复盘（${dateStamp()}）
+  return `# Codex 未标记任务复盘（${dateStamp()}）
 
-## 高度总结
+## 这次看到了什么
 
-本文件由 conversation-review-cleanup 生成草稿，范围为${scope}。当前识别到 ${sessions.length} 个候选会话，需由 Codex 读取近期状态和 turn 摘要后补全模式判断。
+本文件由 conversation-review-cleanup 生成草稿，范围为${scope}。当前识别到 ${sessions.length} 个候选会话，需由 Codex 读取近期状态和 turn 摘要后补全任务判断。
 
-请把这里替换为 4-6 个短段落：说明本轮主要工作主题、决策模式、交付节奏、信息依赖方式，以及真正拖慢推进的因素。不要写流水账。
+一句话结论：
+请把这里替换为最重要的判断，不超过 2 句话。
 
-## 工作模式画像
+本轮会话主要分成几类：
+- 类型 A：数量，代表会话，说明它为什么重要。
+- 类型 B：数量，代表会话，说明它为什么重要。
+- 类型 C：数量，代表会话，说明它为什么重要。
 
-- 推进方式：待根据会话内容归纳。
-- 依赖方式：待识别用户输入、工具能力、外部仓库、自动化记忆之间的依赖。
-- 决策方式：待识别是先试跑、先设计、还是边清理边固化规则。
-- 验证方式：待识别是否有文件验证、脚本验证、手动确认或工具后处理。
-- 收尾方式：待记录归档、改名、删除说明和剩余风险。
+## 已经完成的事
 
-## 卡点
+| 任务 | 结果 | 是否还要跟进 |
+|---|---|---|
+${taskRows(sessions)}
 
-- 卡点 1：
-  触发场景：待补充。
-  影响：待补充。
-  下次识别信号：待补充。
-  建议动作：待补充。
-- 卡点 2：
-  触发场景：待补充。
-  影响：待补充。
-  下次识别信号：待补充。
-  建议动作：待补充。
-- 卡点 3：
-  触发场景：待补充。
-  影响：待补充。
-  下次识别信号：待补充。
-  建议动作：待补充。
+补充说明：
+这里只写那些表格放不下、但会影响判断的内容。
 
-## 固化风险
+## 还没收口的事
 
-- 风险：待补充。
-  表现：待补充。
-  可能后果：待补充。
-  预防动作：待补充。
+| 任务 | 卡在哪里 | 下一步 |
+|---|---|---|
+| 待判断 | 需要读取线程摘要后确认 | 明确动作 |
 
-## 改进建议
+如果没有未完成任务，写：本轮没有发现需要继续推进的未完成任务。
 
-1. 动作：待补充。
-   适用场景：待补充。
-   成功标准：待补充。
-2. 动作：待补充。
-   适用场景：待补充。
-   成功标准：待补充。
-3. 动作：待补充。
-   适用场景：待补充。
-   成功标准：待补充。
+## 值得保留的资产
 
-## 阶段 OKR
+这些会话不只是聊天记录，后续可能还会用到：
 
-Objective：待补充。
+| 资产 | 为什么保留 | 位置 / 线索 |
+|---|---|---|
+| 待判断 | Skill / 自动化 / PRD / 代码改动等长期价值 | 会话名或文件路径 |
 
-Key Results：
+## 可以清理的会话
 
-1. KR：待补充。
-2. KR：待补充。
-3. KR：待补充。
+| 会话 | 建议 | 原因 |
+|---|---|---|
+| 待判断 | 删除 / 归档保留 | 读取后决定 |
 
-本周可执行步骤：
+清理判断：
+- 已总结、无后续价值：建议删除。
+- 包含 Skill、自动化、PRD、业务决策、未完成工作：建议保留。
+- 读不到或索引残留：记录原因后建议清理。
+
+## 这次暴露的问题
+
+只写 1-3 个真正影响效率的问题。
+
+1. 问题：待补充。
+   影响：待补充。
+   下次怎么避免：待补充。
+
+## 下次直接照做
 
 1. 待补充。
 2. 待补充。
 3. 待补充。
 
-## 已处理对话清单
+## 处理记录
 
-| 会话 | ID | 最近更新时间 | 处理结果 |
-|---|---|---|---|
-${tableRows(sessions)}
-
-${failed.length ? `无法处理会话数：${failed.length}` : "无法处理会话数：0"}
+- 已总结：待执行。
+- 已归档：待执行。
+- 已加“已总结”标记：待执行。
+- 建议删除：待判断。
+- 建议保留：待判断。
+- 无法处理：${failed.length}。
 
 诊断信息：
 ${diagnostics.length ? diagnostics.map((item) => `- ${item}`).join("\n") : "- 无"}
@@ -327,19 +332,20 @@ function buildCleanupMarkdown(sessions, diagnostics, args) {
   const unreadable = sessions.filter((session) => session.parseError);
   const active = sessions.filter((session) => !session.markedSummarized && !session.parseError);
 
-  return `# Codex 会话删除说明（${dateStamp()}）
+  return `# Codex 会话清理清单（${dateStamp()}）
 
-## 删除小结
+## 本次范围
 
-本文件由 conversation-review-cleanup 生成草稿。当前候选会话 ${sessions.length} 个，其中已带总结标记 ${summarized.length} 个，读取异常 ${unreadable.length} 个，仍需人工或 Codex 判断 ${active.length} 个。
+- 检查范围：${args.allUnsummarized ? "全部未总结会话" : `最近 ${args.days} 天会话`}
+- 排除线程：${args.currentThread || "未提供 current-thread 参数"}
+- 实际处理：${sessions.length}
+- 无法读取：${unreadable.length}
 
-删除策略偏积极：已总结且无后续价值的会话建议删除；缺失、读取失败、索引残留类会话在记录原因后建议清理；包含未完成任务、关键资产、自动化规则、PRD、Skill 或明确保留信号的会话建议保留。
+## 建议删除
 
-## 建议手动删除
-
-| 会话 | 原因 | 删除信心 | 备注 |
-|---|---|---|---|
-${summarized.length ? summarized.slice(0, 6).map((session) => `| ${(session.title || session.id).replace(/\|/g, "/").slice(0, 80)} | 已总结，待确认无继续跟进价值 | 中 | ${formatDate(session.updatedAt)} |`).join("\n") : "| 暂无 | - | - | - |"}
+| 会话 | 删除原因 | 信心 |
+|---|---|---|
+${summarized.length ? summarized.slice(0, 6).map((session) => `| ${(session.title || session.id).replace(/\|/g, "/").slice(0, 80)} | 已总结，待确认无继续跟进价值 | 中 |`).join("\n") : "| 暂无 | - | - |"}
 
 ## 建议保留
 
@@ -347,23 +353,19 @@ ${summarized.length ? summarized.slice(0, 6).map((session) => `| ${(session.titl
 |---|---|---|
 ${active.length ? active.slice(0, 6).map((session) => `| ${(session.title || session.id).replace(/\|/g, "/").slice(0, 80)} | 尚未总结或可能仍有上下文价值 | 读取后决定归档/标记/删除 |`).join("\n") : "| 暂无 | - | - |"}
 
-## 无法处理但建议清理
-
-| 会话 | 问题 | 建议 |
-|---|---|---|
-${unreadable.length ? unreadable.slice(0, 6).map((session) => `| ${(session.title || session.id).replace(/\|/g, "/").slice(0, 80)} | ${session.parseError.replace(/\|/g, "/")} | 记录后删除 |`).join("\n") : "| 暂无 | - | - |"}
-
-## 已执行后处理
+## 已执行
 
 - 已归档：脚本未执行归档。
-- 已加“已总结”标记：脚本未执行改名。
-- 未处理及原因：脚本只生成草稿，不直接改动会话。
+- 已改名：脚本未执行改名。
+- 已标记：脚本未执行标记。
+- 未执行：脚本只生成草稿，不直接改动会话。
 
-## 不执行的动作
+## 风险提醒
 
-- 不永久删除当前控制线程：${args.currentThread || "未提供 current-thread 参数"}。
-- 不创建自动永久删除任务。
-- 不删除未被记录到本说明里的会话。
+- 无法读取 / 解析异常：${unreadable.length}。
+- 脚本只做索引草稿，最终删除/保留必须由 Codex 读取线程摘要后判断。
+- 删除信心不足的会话应先保留为归档状态，等待用户确认。
+- 不永久删除当前控制线程，不创建自动永久删除任务。
 
 诊断信息：
 ${diagnostics.length ? diagnostics.map((item) => `- ${item}`).join("\n") : "- 无"}
@@ -382,7 +384,7 @@ function main() {
   fs.mkdirSync(args.out, { recursive: true });
 
   const stamp = dateStamp();
-  const reviewPath = path.join(args.out, `${args.prefix}_conversation_review_${stamp}.md`);
+  const reviewPath = path.join(args.out, `${args.prefix}_task_review_${stamp}.md`);
   const cleanupPath = path.join(args.out, `${args.prefix}_session_cleanup_${stamp}.md`);
 
   fs.writeFileSync(reviewPath, buildReviewMarkdown(selected, diagnostics, args));

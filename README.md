@@ -1,15 +1,15 @@
 # Codex Conversation Review Skill
 
-Turn a crowded Codex thread history into two useful files: a concise work-pattern retrospective and a cleanup-ready deletion note.
+Turn a crowded Codex thread history into two useful files: a readable task review and a cleanup-ready session checklist.
 
 This project packages a reusable Codex skill named `conversation-review-cleanup`. It was designed for weekly automation, but it also works for one-off reviews of every unsummarized session.
 
 ## What It Does
 
 - Reviews recent or unsummarized Codex conversations.
-- Identifies work themes, decision patterns, blockers, repeated risks, and next actions.
-- Produces a fixed Markdown review file.
-- Produces a separate session cleanup file with delete/keep/unreadable groups.
+- Identifies completed work, unfinished tasks, retained assets, cleanup candidates, exposed problems, and next actions.
+- Produces a reader-first Markdown task review.
+- Produces a separate session cleanup checklist with delete/keep/executed/risk groups.
 - Uses an aggressive cleanup posture while protecting the current control thread and unfinished work.
 - Includes a small zero-dependency Node.js helper for inventory-backed draft generation.
 
@@ -53,10 +53,10 @@ node conversation-review-cleanup/scripts/generate_review.js \
 
 The skill exposes only two user-facing files:
 
-- `codex_conversation_review_YYYY-MM-DD.md`
+- `codex_task_review_YYYY-MM-DD.md`
 - `codex_session_cleanup_YYYY-MM-DD.md`
 
-The review file focuses on themes, blockers, risks, and the next operating experiment. The cleanup file focuses on what to delete, what to keep, what failed to read, and why.
+The review file answers: what happened, what is done, what remains open, what should be kept, what can be cleaned, and what to do next. The cleanup file is intentionally plain: scope, delete list, keep list, executed actions, and risks.
 
 ## Contributing
 
