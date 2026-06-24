@@ -153,6 +153,96 @@ function walkJsonl(dir, maxFiles = 4000) {
   return result;
 }
 
+function titleFromJsonl(filePath) {
+  const fallback = path.basename(filePath, ".jsonl");
+  let lines = [];
+  try {
+    lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/).filter(Boolean).slice(0, 120);
+  } catch {
+    return fallback;
+  }
+
+  for (const line of lines) {
+    let record = null;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      continue;
+    }
+
+    const payload = record.payload;
+    if (payload?.type !== "message" || payload.role !== "user") continue;
+    const text = (payload.content || [])
+      .map((item) => item.text || item.input_text || "")
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    if (text && !text.startsWith("<environment_context>")) {
+      return text.slice(0, 80);
+    }
+  }
+
+  return fallback;
+}
+
+function sessionIdFromJsonl(filePath) {
+  const fallback = path.basename(filePath, ".jsonl").match(/(019[0-9a-f-]+)$/)?.[1] || path.basename(filePath, ".jsonl");
+  let lines = [];
+  try {
+    lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/).filter(Boolean).slice(0, 20);
+  } catch {
+    return fallback;
+  }
+
+  for (const line of lines) {
+    let record = null;
+    try {
+      record = JSON.parse(line);
+    } catch {
+      continue;
+    }
+
+    if (record.type === "session_meta") {
+      return record.payload?.session_id || record.payload?.id || fallback;
+    }
+  }
+
+  return fallback;
+}
+
+function archivedSessionRecords(codexHome, knownIds, diagnostics) {
+  const archivedRoot = path.join(codexHome, "archived_sessions");
+  if (!fs.existsSync(archivedRoot)) return [];
+
+  const records = [];
+  const files = walkJsonl(archivedRoot);
+  for (const file of files) {
+    try {
+      const id = sessionIdFromJsonl(file);
+      if (knownIds.has(id)) continue;
+
+      const stat = fs.statSync(file);
+      records.push({
+        id,
+        title: titleFromJsonl(file),
+        updatedAt: stat.mtime,
+        createdAt: stat.birthtime,
+        sessionPath: file,
+        archived: true,
+        markedSummarized: false,
+        source: "archived-jsonl-orphan",
+        raw: {},
+        parseError: "",
+      });
+    } catch (error) {
+      diagnostics.push(`Failed to inspect archived session ${file}: ${error.message}`);
+    }
+  }
+
+  return records;
+}
+
 function loadSessions(codexHome) {
   const diagnostics = [];
   const records = [];
@@ -192,6 +282,9 @@ function loadSessions(codexHome) {
       }
     }
   }
+
+  const knownIds = new Set(records.map((record) => record.id).filter(Boolean));
+  records.push(...archivedSessionRecords(codexHome, knownIds, diagnostics));
 
   const byId = new Map();
   for (const record of records) {

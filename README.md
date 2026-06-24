@@ -10,6 +10,7 @@ This project packages a reusable Codex skill named `conversation-review-cleanup`
 - Identifies completed work, unfinished tasks, retained assets, cleanup candidates, exposed problems, and next actions.
 - Produces a reader-first Markdown task review.
 - Produces a separate session cleanup checklist with delete/keep/executed/risk groups.
+- Scans both the session index and orphaned archived JSONL files so older archived conversations are not silently missed.
 - Uses an aggressive cleanup posture while protecting the current control thread and unfinished work.
 - Includes a small zero-dependency Node.js helper for inventory-backed draft generation.
 

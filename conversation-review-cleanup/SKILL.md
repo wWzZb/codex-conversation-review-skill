@@ -32,16 +32,19 @@ Do not use this skill to permanently delete sessions without a user-approved del
 2. Load the user's requested scope:
    - Default: recent sessions from the last 7 days.
    - If the user says "all unsummarized" or "time does not matter", include every session that is not already marked summarized.
-3. Read each candidate's current state, title, recent turns, and available summaries.
-4. Record unreadable, missing, permission-denied, or incomplete sessions explicitly in both outputs.
-5. Produce exactly two Markdown files:
+3. Build the candidate list from both the session index and archived JSONL files:
+   - Use `session_index.jsonl` or an equivalent index when present.
+   - Also scan `archived_sessions/*.jsonl`; any archived file missing from the index is an orphan candidate and must be recorded instead of silently skipped.
+4. Read each candidate's current state, title, recent turns, and available summaries when possible.
+5. Record unreadable, missing, permission-denied, orphaned, or incomplete sessions explicitly in both outputs.
+6. Produce exactly two Markdown files:
    - A task review file using `references/output-templates.md`.
    - A session cleanup checklist using `references/output-templates.md` and `references/deletion-policy.md`.
-6. After the files are written, perform only the approved post-processing:
+7. After the files are written, perform only the approved post-processing:
    - Archive and mark successfully summarized sessions with a summarized marker such as `已总结`.
    - Do not archive or rename the current control thread.
    - Do not create a permanent deletion automation.
-7. In the final response, expose only the two Markdown files unless the user asks for implementation details.
+8. In the final response, expose only the two Markdown files unless the user asks for implementation details.
 
 ## Output Rules
 
@@ -64,6 +67,7 @@ Apply a more aggressive cleanup posture than ordinary archival:
 
 - Recommend deletion for summarized sessions that no longer need follow-up.
 - Recommend deletion for unreadable, missing, orphaned, or index-only sessions after documenting the failure reason.
+- Treat archived JSONL files missing from the index as orphan candidates; summarize or recommend cleanup only after documenting the source file.
 - Keep sessions with active work, unfinished implementation, PRDs, skills, AGENTS files, automations, business-sensitive handoffs, merge requests, or explicit user-preserve signals.
 - When uncertain, keep the session but state the uncertainty.
 - Never delete the current control thread.
